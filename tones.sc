@@ -1,3 +1,4 @@
+// Thread Arrow Patch ESTRY
 MIDIClient.init( 1, 1 );
 ~inSigs = Bus.audio(s, 8);
 
@@ -82,3 +83,8 @@ inf.do {
 ~rout[ 0 ].play;
 ~rout[ 0 ].stop;
 ~rout[ 0 ].isPlaying;
+
+
+Pdef(\x);
+Pdef(\x, Pbind(\type, \midi, \midiout, m, \midinote, Pseq([31, 32, 31], inf), \dur, Pseq([0.5,0.3, 0.2], inf)));
+Pdef(\x).play;

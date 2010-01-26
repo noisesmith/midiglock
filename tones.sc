@@ -43,13 +43,13 @@ MIDIClient.init( 1, 1 );
 };
 
 Pdefn( \amp,      Pseq( [ 1 ], inf ) );
-Pdefn( \degree,   Pseq( [ 0, [ 2, 4 ], 3, 7, 8, [ 2, 7 ] ], inf ) );
-Pdefn( \degree,   Pseq( [ 0, [ 2, 4 ], 7, [ 2, 7 ] ], inf ) );
-Pdefn( \degree,   Pseq(
-	10.rand.collect{
-		8.rand.collect{ ( 1..8 ).choose } }, inf ) );
-Pdefn( \degree,   Pseq( [ 0, [ 2, 4 ], 7, [ 2, 7 ] ], inf ) );
-Pdefn( \degree,   Pseq( [ 0, [ 2, 4 ], 7, [ 2, 7 ] ], inf ) );
+Pdefn( \degrees,   Pseq( [ 0, [ 2, 4 ], 3, 7, 8, [ 2, 7 ] ], inf ) );
+Pdefn( \degrees,   Pseq( [ 0, [ 2, 4 ], 7, [ 2, 7 ] ], inf ) );
+Pdefn( \degrees,   Pseq(
+	( 10.rand + 1).collect{
+		( 4.rand + 2).collect{ ( 0..7 ).choose } }, inf ) );
+Pdefn( \degrees,   Pseq( [ 0, [ 2, 4 ], 7, [ 2, 7 ] ], inf ) );
+Pdefn( \degrees,   Pseq( [ 1, [ 1, 3, 5 ], 7, [ 3, 5, 7 ] ], inf ) );
 Pdefn( \mTransp,  Pseq( ( 0!40 )++( 2!60 ), inf ) );
 Pdefn( \cTransp,  Pseq( ( 0!20 )++( 3!10 ), inf ) );
 
@@ -59,10 +59,13 @@ Pdefn( \roots,    Pseq( ( 0!100 )++( 3!19 ), inf ) );
 Pdefn( \scales,
 	Pseq( ( [ [ 0, 2, 4, 5, 7, 9, 11 ]!30,
 		[ 3, 4, 5, 6, 7, 8, 9 ]!3 ] ), inf ) );
+Pdefn( \scales,
+	Pseq( ( [ [ 0, 2, 4, 5, 7, 9, 11 ]!10,
+		[ 1, 3, 6, 8, 10 ]!3 ] ), inf ) );
 Pdefn( \durs,     Pseq( [ 1, 0.4, 0.1, 0.2, 0.3 ], inf ) );
 Pdefn( \durs,
 	Pseq( [ 1, 0.4, 0.1, 1.2, 0.3 ]++8.collect{ | x | (x/8)**2+0.4 }, inf ) );
-Pdefn( \durs,     Pseq( [ 1, 0.4, 0.1, 0.2, 0.3 ], inf ) );
+Pdefn( \durs,     Pseq( 18.rand.collect{ | x | (x/8)**2+0.1 }, inf ) );
 Pdefn( \tempos,   Pseq( ((1..100)/100+1)/2, inf ) );
 // Pdefn( \midinotes, Pseq( 12.collect{ ~noteVals.choose }, inf ) );
 
@@ -82,5 +85,5 @@ Pdefn(\main,
 ).play;
 
 )
-~info.(\degree)
+~info.(\degrees)
 ~info.(\durs)

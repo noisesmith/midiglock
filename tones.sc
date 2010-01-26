@@ -81,30 +81,6 @@ Pdefn(\main,
 	)
 ).play;
 
-Pdefn(\main).debug
-
-Tdef( \newnotes,
-	{
-		var notes = [ 26 ];
-		var durs;
-		loop( {
-			if( 5.rand > 3,
-				{ notes = ( 6.rand + 1 ).collect{ ~noteVals.choose } } );
-			durs   = (notes.size * ( 5.rand + 1 ) ).collect( { 1.0.rand**3 } );
-			Pdefn( \notes,
-				Pseq( notes, inf )
-			);
-			Pdefn( \durs,
-				Pseq( durs, inf )
-			);
-			"new notes: ".postln;
-			("notes: " ++ notes).postln;
-			("durs: " ++ durs).postln;
-			( 3.0.rand * durs.size ).wait;
-		} )
-	}
-).play;
-
 )
 ~info.(\degree)
 ~info.(\durs)

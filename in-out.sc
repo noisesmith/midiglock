@@ -13,3 +13,4 @@ SynthDef( \grab_input,
 ~capture.free;
 
 ~buf.close;
+

@@ -87,3 +87,50 @@ Pdefn(\main,
 )
 ~info.(\degrees)
 ~info.(\durs)
+
+~deriveScale = { | steps |
+	var total = 0;
+	steps.collect{ | step |
+		total = total + step;
+		total % 12
+	}.asSet.asArray.sort;
+};
+
+~lyseScale = { | scale |
+	var last = scale[ 0 ];
+	var result;
+	scale.[1..].collect{ | degree |
+		result = (degree - last) % 12;
+		last = degree;
+		result
+	}
+};
+
+~expandScale = { | scale |
+	var missing = ( 0..11 ).select{ | x | scale.find ( [ x ] ).isNil };
+	( scale ++ missing.choose ).sort;
+}
+
+~shrinkScale = { | scale |
+	scale.scramble.[ 1.. ].sort;
+}
+
+~normalizeScale = { | scale |
+	scale = scale.asSet.asArray.sort;
+	scale - scale[0];
+}
+
+~shrinkScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
+~shrinkScale.([ 0 ])
+
+~expandScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
+
+~lyseScale.(~deriveScale.( [ 2, 2, 2, 1, 1, 1, 1, 1, 1 ] ));
+~deriveScale.(~lyseScale.( [ 0, 2, 4, 6, 7, 8, 9, 10, 11, 0 ] ));
+
+(0..11)++(8..20).asSet.asArray.sort
+~test = [];
+~test = ~expandScale.(~test);
+~test = ~normalizeScale.(~shrinkScale.(~test));
+
+~hmm = [0,1,2,3] ++ []

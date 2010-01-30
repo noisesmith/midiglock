@@ -29,3 +29,4 @@ SynthDef( \io, {
 1024.do{ | n |
 	~buffs[ 6 ].get( n,
 		{ | x | if( x.abs > 100, { [ x, n ].postln } ) } ) };
+Scope

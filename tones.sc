@@ -1,5 +1,4 @@
 // Thread Arrow Patch ESTRY
-(
 ~inSigs = Bus.audio(s, 8);
 ~strips = 8.collect(Set[]);
 
@@ -25,7 +24,8 @@
 };
 
 // ~notevals.size = 35
-~noteVals = ( 26 .. 60 ).asSet;
+~noteArray = ( 26 .. 60 ); 
+~noteVals = ~noteArray.asSet;
 
 // midi connection
 MIDIClient.init( 1, 1 );
@@ -57,28 +57,118 @@ MIDIClient.init( 1, 1 );
 ~expandScale = { | scale |
 	var missing = ( 0..11 ).select{ | x | scale.find ( [ x ] ).isNil };
 	( scale ++ missing.choose ).sort;
-}
+};
 
 ~shrinkScale = { | scale |
 	scale.scramble.[ 1.. ].sort;
-}
+};
 
 ~normalizeScale = { | scale |
 	scale = scale.asSet.asArray.sort;
 	scale - scale[0];
-}
+};
 
-~shrinkScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
-~shrinkScale.([ 0 ])
+// ~shrinkScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
+// ~shrinkScale.([ 0 ])
 
-~expandScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
+// ~expandScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
 
-~lyseScale.(~deriveScale.( [ 2, 2, 2, 1, 1, 1, 1, 1, 1 ] ));
-~deriveScale.(~lyseScale.( [ 0, 2, 4, 6, 7, 8, 9, 10, 11, 0 ] ));
+// ~lyseScale.(~deriveScale.( [ 2, 2, 2, 1, 1, 1, 1, 1, 1 ] ));
+// ~deriveScale.(~lyseScale.( [ 0, 2, 4, 6, 7, 8, 9, 10, 11, 0 ] ));
 
-(0..11)++(8..20).asSet.asArray.sort
-~test = [];
-~test = ~expandScale.(~test);
-~test = ~normalizeScale.(~shrinkScale.(~test));
+~white2used = Set();
 
-~hmm = [0,1,2,3] ++ []
+~melodArray = [ ~noteVals.choose ];
+~melodIdx = 0;
+
+~scale = [ 0, 2, 4, 5, 7, 9, 11 ]; // major scale
+
+~melodyExpand = {
+	var newTone = ~scale.choose + 20 + (4.rand * 12);
+	if ( newTone < 26,
+		{ newTone = newTone + 12 } );
+	if ( newTone > 60,
+		{ newTone = newTone - 12 } );
+	~melodArray = ~melodArray ++ [ newTone ];
+};
+
+~melodyPrune = {
+	~melodArray = ~melodArray[ 1.. ]
+};
+
+~getNote = { | name |
+	var diff;
+	var newnote;
+	switch ( name,
+		\white, { ~noteVals.choose },
+		\white2, {
+			diff = ~white2used.symmetricDifference( ~noteVals.asSet );
+			if( diff.size > 0, {
+				newnote = diff.choose;
+				~white2used.add( newnote );
+			}, {
+				newnote = ~noteVals.choose;
+				~white2used = Set[ newnote ];
+			}
+			);
+			newnote;
+		},
+		\melody, {
+			if( ~melodArray.size > 0, {
+				~melodIdx = ~melodIdx + 1 % ~melodArray.size;
+				~melodArray[ ~melodIdx ];
+			}, {
+				~noteVals.asArray[ 0 ];
+			} ) }
+	)
+};
+
+~getVelocity = { | name |
+	27.rand + 100
+};
+
+~getDur = { | name |
+	switch ( name,
+		\white,	{ 0.02 + 0.2.rand },
+		\white2, { 0.2 + 0.02.rand },
+		\melody, { [ 0.4, 0.2, 0.3, 0.1 ] @@ ~melodIdx }
+	)
+};
+	
+
+~makeMelody = { | name |
+	Routine{
+		loop {
+			~midiChan.noteOn( 0,
+				~getNote.( name ),
+				~getVelocity.( name ) );
+			~getDur.( name ).wait;
+		} } };
+
+~white = ~makeMelody.( \white );
+~white2 = ~makeMelody.( \white2 );
+~melodic = ~makeMelody.( \melody );
+
+~white.play;
+~white2.play;
+~melodic.play;
+
+  ~white.isPlaying;
+ ~white2.isPlaying;
+~melodic.isPlaying;
+
+~white.reset;
+~white2.reset;
+~melodic.reset;
+~white.isPlaying;
+
+
+~white.stop;
+~white2.stop;
+~melodic.stop;
+
+~melodyPrune.();
+~melodyExpand.();
+
+~scale = ~shrinkScale.( ~scale );
+~scale = ~expandScale.( ~scale );

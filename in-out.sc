@@ -1,30 +1,31 @@
-SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
-SwingOSC.default.boot;
+Platform.case (
+  { \osx }, {
+  },
+  { \linux }, {
+	  SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
+	  //	  SwingOSC.java = "/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/bin/java";
+	  SwingOSC.default.boot;
+  }
+);
 
-8.do{ | n | FreqScope( busNum: n+8 ) };
+FreqScope( busNum: 0 );
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];
 
 // register to receive the analysis messages
 
-OSCresponder( s.addr, '/tr', { arg time,responder,msg;
-  [ time, msg[ 2 ] >> 3, msg[ 2 ] & 8, msg[ 3 ] ].postln;
-} ).add;
+~buffs = 8.collect{ Buffer.alloc( s, 1024, 1 ) };
 
 (
-SynthDef( \io,
-  { var result;
-	var anal;
-	Out.ar( ( 0 .. 7 ), SinOsc.ar( ~fqs ) );
-	result = BRF.ar( SoundIn.ar( ( 0 .. 7 ) ), ~fqs );
-	8.do{ | x |
-	  ~fqs.select{ | y, z | z != x }.do {
-		|  fq, idx |
-		anal = BPF.ar( result[ idx ], fq ).abs;
-		Out.ar( x*8 + 8 + idx, anal );
-		SendTrig.kr(
-		  Amplitude.kr(anal)
-		  + Impulse.kr( 5, 0, 1 )
-		  - 2.12, idx, x );
-	  } } } ).send( s );
+SynthDef( \io, {
+	var result;
+	Out.ar( ( 0..7 ), SinOsc.ar( ~fqs ) );
+	result = SoundIn.ar( ( 0..7 ) );
+	8.do{ | n | FFT( ~buffs[ n ], result[ n ] ) } } ).send( s );
+
 )
+
 ~io = Synth( \io );
+
+1024.do{ | n |
+	~buffs[ 6 ].get( n,
+		{ | x | if( x.abs > 100, { [ x, n ].postln } ) } ) };

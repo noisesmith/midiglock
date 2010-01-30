@@ -28,13 +28,24 @@
 ~noteVals = ~noteArray.asSet;
 
 // midi connection
-MIDIClient.init( 1, 1 );
+Platform.case (
+  { \osx }, {
+	MIDIClient.init;
+	~uid = MIDIClient.destinations[ 0 ].uid;
+	~midiChan = MIDIOut( 0, ~uid );
+	~midiChan.connect( ~uid );
+  },
+  { \linux }, {
+	MIDIClient.init( 1, 1 );
+	~uid = 1048576;
+	~midiChan = MIDIOut( 0, ~uid );
+	// the next two lines are Linux specific, I think
+	~midiChan.latency_( 0 );
+	~midiChan.connect( ~uid );
+  }
+);
+
 // the next line will need customizing
-~uid = 1048576;
-~midiChan = MIDIOut( 0, ~uid );
-// the next two lines are Linux specific, I think
-~midiChan.latency_( 0 );
-~midiChan.connect( ~uid );
 
 ~deriveScale = { | steps |
 	var total = 0;

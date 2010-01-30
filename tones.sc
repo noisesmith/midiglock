@@ -1,5 +1,4 @@
 // Thread Arrow Patch ESTRY
-~inSigs = Bus.audio(s, 8);
 ~strips = 8.collect(Set[]);
 
 // test case
@@ -44,8 +43,6 @@ Platform.case (
 	~midiChan.connect( ~uid );
   }
 );
-
-// the next line will need customizing
 
 ~deriveScale = { | steps |
 	var total = 0;

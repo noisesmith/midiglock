@@ -1,30 +1,24 @@
-// for testing
-// ~buf = Buffer.alloc(s, 65536, 8);
-// ~buf.write( "~/input_data_fabric.aiff".standardizePath,
-//	"aiff", "int16", 0, 0, true );
-
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];
 
+// register to receive the analysis messages
+
+OSCresponder(s.addr,'/tr',{ arg time,responder,msg;
+  [time,responder,msg].postln;
+}
+).add;
+
 SynthDef( \io,
-	{ | buff |
-		// more testing
-		// DiskOut.ar( buff, In.ar( 0, 8 ) );
-		Out.ar( ( 0 .. 7 ), SinOsc.ar( ~fqs ));
-		SoundIn( ( 0 .. 7 ))
-	}
-).send(s);
+  {
+	var result;
+	Out.ar( ( 0 .. 7 ), SinOsc.ar( ~fqs ));
+	result = BRF.ar( SoundIn.ar( ( 0 .. 7 )), ~fqs );
+	8.do{ | x |
+	  ~fqs.select{ | y, z | z != x }.do {
+		|  fq, idx |
+		SendTrig.kr(
+		  Amplitude.kr(
+			BPF.ar( result[ idx ], fq ) ) - 0.5, ( x<<3 ) + idx );
+	  } } } ).send(s);
 
+~io = Synth( \io );
 
-// yet more testing
-// ~capture = Synth( \grab_input, [ ~buf ] );
-// ~capture.free;
-// ~buf.close;
-
-// JFreqScope.new( 400, 200, 0 );
-// { BRF.ar(WhiteNoise.ar(1), MouseX.kr(100, 20000, 1), 3) }.play;
-// {
-// 	var selection = MouseX.kr( 0, 8, 0 ).floor;
-// 	BRF.ar(Mix( SinOsc.ar( ~fqs ) ),
-// 	~fqs[  ], 3)}.play;
-
-// TODO: figure out the frequency / rq args for each of the 8 filters

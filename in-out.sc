@@ -17,16 +17,18 @@ FreqScope( busNum: 0 );
 
 (
 SynthDef( \io, {
-	var result;
-	Out.ar( ( 0..7 ), SinOsc.ar( ~fqs ) );
-	result = SoundIn.ar( ( 0..7 ) );
-	8.do{ | n | FFT( ~buffs[ n ], result[ n ] ) } } ).send( s );
+  var result = SoundIn.ar( ( 0..7 ) );
+  8.do{
+	| n | 
+	Out.ar( n, SinOsc.ar( ~fqs[ n ] ) );
+	FFT( ~buffs[ n ], result[ n ] );
+  } } ).send( s );
 
 )
 
 ~io = Synth( \io );
+~io.free;
 
 1024.do{ | n |
 	~buffs[ 6 ].get( n,
 		{ | x | if( x.abs > 100, { [ x, n ].postln } ) } ) };
-Scope

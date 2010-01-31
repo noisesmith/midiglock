@@ -38,13 +38,23 @@ SynthDef( \io, {
   ( 128 .. 133 ), ( 172 .. 175 ), ( 216 .. 221 ), ( 290 .. 293 )
 ];
 
-~sens = 0.2;
+~debugWin = Window( "signal input debug", Rect( -1, -1, 8*64, 8*64 ) ).front;
+
+~displays = 8.collect{
+  | x |
+  8.collect{
+	| y |
+	JSCStaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
+
+
+
+~sens = 0.001;
+
 ~report = {
   | x |
   x.do{ | y, i |
 	y.do{ | z, j |
-	  z.do{ if( z > ~sens,
-		{ [ \got, i, j, z ].postln } ) } } } };
+	  z.do{ ~displays[ i ][ j ].string = z } } } };
 
 ~monitor = Routine{
   var results  = 0!8!8;		
@@ -70,7 +80,7 @@ SynthDef( \io, {
 					  results = 0!8!8;		
 					  allCollected = false!8;
 					} ) } ) } ) } } };
-	1.wait } };
+	0.5.wait } };
 
 ~monitor.play;
 ~monitor.stop;

@@ -34,7 +34,7 @@ SynthDef( \io, {
 		{ | x | if( x.abs > 100, { [ x, n ].postln } ) } ) };
 
 ~ranges = [
-  ( ), ( 38 .. 43 ), ( 50 .. 53 ), ( 78 .. 81 ), ( 90 .. 95 ),
+  ( 38 .. 43 ), ( 50 .. 53 ), ( 78 .. 81 ), ( 90 .. 95 ),
   ( 128 .. 133 ), ( 172 .. 175 ), ( 216 .. 221 ), ( 290 .. 293 )
 ];
 
@@ -54,7 +54,7 @@ SynthDef( \io, {
   | x |
   x.do{ | y, i |
 	y.do{ | z, j |
-	  z.do{ ~displays[ i ][ j ].string = z } } } };
+	  ~displays[ i ][ j ].string = z } } };
 
 ~monitor = Routine{
   var results  = 0!8!8;		

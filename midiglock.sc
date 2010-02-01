@@ -12,16 +12,16 @@ Platform.case (
 
 ~buffs = 8.collect{ Buffer.alloc( s, 1024, 1 ) };
 
-SynthDef( \io, {
-  var result = SoundIn.ar( ( 0..7 ) );
-  8.do{
-	| n | 
-	Out.ar( n, SinOsc.ar( ~fqs[ n ] ) );
-	FFT( ~buffs[ n ], result[ n ] );
-  } } ).send( s );
+~testing = true;
 
-~io = Synth( \io );
-// ~io.free;
+SynthDef( \io, {
+	var result = SoundIn.ar( ( 0..7 ) );
+	8.do{
+		| n | 
+		Out.ar( n, SinOsc.ar( ~fqs[ n ] ) );
+		FFT( ~buffs[ n ], result[ n ] );
+	} } ).send( s );
+
 
 // where to find each of the inputs in the FFT
 ~ranges = [
@@ -46,34 +46,23 @@ SynthDef( \io, {
 	  ~displays[ i ][ j ].string = z } } };
 
 ~monitor = Routine{
-  var results  = 0!8!8;		
-  var allCollected = false!8;
-  loop {
-	8.do{ | chan |
-	  ~ranges.do{
-		| range, rnum |
-		var collected = false!range.size;
-		var total = 0;
-		range.do{ | i, n |
-		  ~buffs[ chan ].get( i,
-			{ | result |
-			  total = total + result;
-			  collected[ n ] = true;
-			  if( collected.select{ | x | not( x ) }.size == 0,
-				{
-				  results[ chan ][ rnum ] = total;
-				  allCollected[ chan ] = true;
-				  if( allCollected.select{ | x | not( x ) }.size == 0,
-					{
-					  ~report.( results );
-					  results = 0!8!8;		
-					  allCollected = false!8;
-					} ) } ) } ) } } };
-	0.5.wait } };
-
-~monitor.play;
-// ~monitor.stop;
-// ~monitor.isPlaying;
+	var getbuffs = { | count, allbuffs |
+		if( count < 8,
+			{
+				~buffs[ count ].getn( 0, 1023, {
+					| buff |
+					getbuffs.( count + 1, allbuffs ++ [ buff ] ) } )
+			},
+			{
+				var result = 0!8!8;
+				allbuffs.do {
+					| buff, i |
+					~ranges.do{
+						| range, j |
+						range.do{ | k |
+							result[ i ][ j ] = buff[ k ]+result[ i ][ j ] } } };
+				~report.( result ) } ) };
+	loop { getbuffs.( 0, [] ); 0.5.wait } }.play;
 
 // Thread Arrow Patch ESTRY
 ~strips = 8.collect( Set[ ] );
@@ -153,14 +142,6 @@ Platform.case (
 	scale - scale[0];
 };
 
-// ~shrinkScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
-// ~shrinkScale.([ 0 ])
-
-// ~expandScale.([ 0, 2, 4, 6, 7, 8, 9, 10, 11 ])
-
-// ~lyseScale.(~deriveScale.( [ 2, 2, 2, 1, 1, 1, 1, 1, 1 ] ));
-// ~deriveScale.(~lyseScale.( [ 0, 2, 4, 6, 7, 8, 9, 10, 11, 0 ] ));
-
 ~white2used = Set();
 
 ~melodArray = [ ~noteVals.choose ];
@@ -220,7 +201,6 @@ Platform.case (
 	)
 };
 	
-
 ~makeMelody = { | name |
 	Routine{
 		loop {
@@ -234,26 +214,41 @@ Platform.case (
 ~white2 = ~makeMelody.( \white2 );
 ~melodic = ~makeMelody.( \melody );
 
-~white.play;
-~white2.play;
-~melodic.play;
+if( not( ~testing ), {
+	~io = Synth( \io );
+	// ~io.free;
+}, { // use with preset 3 on bcf2000
 
-  ~white.isPlaying;
- ~white2.isPlaying;
-~melodic.isPlaying;
+	~touched = 0!8;
 
-~white.reset;
-~white2.reset;
-~melodic.reset;
-~white.isPlaying;
+	CCResponder( {
+		| src, ch, num, val|
+		var adjusted = val**4 * 0.00000005;
+		var getbuffs = { | count, allbuffs |
+			if( count < 8,
+				{
+					if( ~touched[ count ] < ~sens,
+						{
+							getbuffs.( count + 1, allbuffs ++ [ \ignoreMe ] );
+						}, {
+							~buffs[ count ].getn( 0, 1023, { | buff |
+								getbuffs.( count + 1, allbuffs ++ [ buff ] ) } )
+						} ) },
+				{
+					~touched.do{ | tn, i |
+						if( tn > ~sens && allbuffs[ i ] != \ignoreMe ) {
+							~ranges[ ch ].do{ | elt |
+								allbuffs[ i ][ elt ] = tn.rand + adjusted.rand;
+							};
+							~ranges[ i ].do{ | elt |
+								allbuffs[ ch ][ elt ] = tn.rand + adjusted.rand;
+							}
+						}
+					};
+					allbuffs.do{ | buff, i |
+						~buffs[ i ].setn( 0, buff );
+					};
+				} ) };
+		~touched[ ch ] = adjusted;
+		getbuffs.( 0, [] ) } ) } );
 
-
-~white.stop;
-~white2.stop;
-~melodic.stop;
-
-~melodyPrune.();
-~melodyExpand.();
-
-~scale = ~shrinkScale.( ~scale );
-~scale = ~expandScale.( ~scale );

@@ -2,17 +2,17 @@ Platform.case (
   { \osx }, {
   },
   { \linux }, {
-	  SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
-	  //SwingOSC.java = "/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/bin/java";
-	  SwingOSC.default.boot;
-  } );
+	  if( not(SwingOSC.default.serverRunning), {
+		  SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
+		  //SwingOSC.java = "/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/bin/java";
+		  SwingOSC.default.boot; } ) } );
+
+~testing = true;
 
 // FreqScope( busNum: 0 );
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];
 
 ~buffs = 8.collect{ Buffer.alloc( s, 1024, 1 ) };
-
-~testing = true;
 
 SynthDef( \io, {
 	var result = SoundIn.ar( ( 0..7 ) );
@@ -38,23 +38,28 @@ SynthDef( \io, {
 	JSCStaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
 
 ~sens = 0.001;
-
 ~report = {
   | x |
-  x.do{ | y, i |
-	y.do{ | z, j |
-	  ~displays[ i ][ j ].string = z } } };
+	var color;
+	x.do{ | y, i |
+		y.do{ | z, j |
+			color = min( z/100, 1 );
+			~displays[ i ][ j ].background = Color( color, color, color);
+			~displays[ i ][ j ].stringColor =
+			if(color > 0.5, Color.black, Color.white );
+			~displays[ i ][ j ].string =
+			if( z > ~sens, z, 0 ) } } };
 
 ~monitor = Routine{
+	var result;
 	var getbuffs = { | count, allbuffs |
 		if( count < 8,
 			{
-				~buffs[ count ].getn( 0, 1023, {
+				~buffs[ count ].getn( 0, 1024, {
 					| buff |
-					getbuffs.( count + 1, allbuffs ++ [ buff ] ) } )
-			},
+					getbuffs.( count + 1, allbuffs ++ [ buff ] ) } ) },
 			{
-				var result = 0!8!8;
+				result = 0!8!8;
 				allbuffs.do {
 					| buff, i |
 					~ranges.do{
@@ -62,7 +67,7 @@ SynthDef( \io, {
 						range.do{ | k |
 							result[ i ][ j ] = buff[ k ]+result[ i ][ j ] } } };
 				~report.( result ) } ) };
-	loop { getbuffs.( 0, [] ); 0.5.wait } }.play;
+	loop { getbuffs.( 0, [] ); 0.1.wait } }.play;
 
 // Thread Arrow Patch ESTRY
 ~strips = 8.collect( Set[ ] );
@@ -222,33 +227,27 @@ if( not( ~testing ), {
 	~touched = 0!8;
 
 	CCResponder( {
-		| src, ch, num, val|
+		| src, ch, num, val |
+		//var strip = ch; // for bcf2000 preset 3
+		var strip = ( num - 1 ) % 8; // for my custom nanocontrol config
 		var adjusted = val**4 * 0.00000005;
 		var getbuffs = { | count, allbuffs |
 			if( count < 8,
 				{
-					if( ~touched[ count ] < ~sens,
-						{
-							getbuffs.( count + 1, allbuffs ++ [ \ignoreMe ] );
-						}, {
-							~buffs[ count ].getn( 0, 1023, { | buff |
-								getbuffs.( count + 1, allbuffs ++ [ buff ] ) } )
-						} ) },
+					~buffs[ count ].getn( 0, 1024, { | buff |
+						getbuffs.( count + 1, allbuffs ++ [ buff ] ) } )
+				},
 				{
 					~touched.do{ | tn, i |
-						if( tn > ~sens && allbuffs[ i ] != \ignoreMe ) {
-							~ranges[ ch ].do{ | elt |
-								allbuffs[ i ][ elt ] = tn.rand + adjusted.rand;
-							};
-							~ranges[ i ].do{ | elt |
-								allbuffs[ ch ][ elt ] = tn.rand + adjusted.rand;
-							}
-						}
-					};
+						~ranges[ strip ].do{ | elt |
+							allbuffs[ i ][ elt ] = tn.rand + adjusted.rand};
+						~ranges[ i ].do{ | elt |
+							allbuffs[ strip ][ elt ] = tn.rand +
+							adjusted.rand } };
 					allbuffs.do{ | buff, i |
-						~buffs[ i ].setn( 0, buff );
-					};
-				} ) };
-		~touched[ ch ] = adjusted;
+						~buffs[ i ].setn( 0, buff ) } } ) };
+		~touched[ strip ] = adjusted;
 		getbuffs.( 0, [] ) } ) } );
 
+// ~buffs[ 1 ].getn( 0, 1024, { | buff | buff.postln } )
+// MIDIResponder.removeAll

@@ -2,13 +2,17 @@
 
 Platform.case (
   { \osx }, {
-	~testing = false;
-  },
+	FreqScope( busNum: 0 );
+	~testing = false },
   { \linux }, {
-	~testing = true;
-  } );
+	~debugWin = Window( "signal debug", Rect( -1, -1, 8*64, 8*64 ) ).front;
+	~displays = 8.collect{
+	  | x |
+	  8.collect{
+		| y |
+		StaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
+	~testing = true } );
 
-// FreqScope( busNum: 0 );
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];
 
 ~buffs = 8.collect{ Buffer.alloc( s, 1024, 1 ) };
@@ -18,23 +22,13 @@ SynthDef( \io, {
 	8.do{
 		| n | 
 		Out.ar( n, SinOsc.ar( ~fqs[ n ] ) );
-		FFT( ~buffs[ n ], result[ n ] );
-	} } ).send( s );
-
+		FFT( ~buffs[ n ], result[ n ] ) } } ).send( s );
 
 // where to find each of the inputs in the FFT
 ~ranges = [
   ( 38 .. 43 ), ( 50 .. 53 ), ( 78 .. 81 ), ( 90 .. 95 ),
   ( 128 .. 133 ), ( 172 .. 175 ), ( 216 .. 221 ), ( 290 .. 293 )
 ];
-
-~debugWin = Window( "signal input debug", Rect( -1, -1, 8*64, 8*64 ) ).front;
-
-~displays = 8.collect{
-  | x |
-  8.collect{
-	| y |
-	StaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
 
 ~sens = 0.008;
 ~strips = Set[ ]!8;

@@ -2,14 +2,14 @@
 
 Platform.case (
   { \osx }, {
+	~testing = false;
   },
   { \linux }, {
-	  if( not(SwingOSC.default.serverRunning), {
+	~testing = true;
+	if( not(SwingOSC.default.serverRunning), {
 		  SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
 		  //SwingOSC.java = "/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/bin/java";
 		  SwingOSC.default.boot; } ) } );
-
-~testing = true;
 
 // FreqScope( busNum: 0 );
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];

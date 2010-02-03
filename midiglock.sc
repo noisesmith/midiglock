@@ -6,10 +6,7 @@ Platform.case (
   },
   { \linux }, {
 	~testing = true;
-	if( not(SwingOSC.default.serverRunning), {
-		  SwingOSC.program = "/usr/local/bin/SwingOSC.jar";
-		  //SwingOSC.java = "/usr/lib/jvm/java-1.5.0-sun-1.5.0.17/bin/java";
-		  SwingOSC.default.boot; } ) } );
+  } );
 
 // FreqScope( busNum: 0 );
 ~fqs = [ 860, 1100, 1700, 1975, 2793, 3729, 4698, 6271 ];
@@ -37,7 +34,7 @@ SynthDef( \io, {
   | x |
   8.collect{
 	| y |
-	JSCStaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
+	StaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
 
 ~sens = 0.008;
 ~strips = Set[ ]!8;
@@ -46,20 +43,23 @@ Platform.case (
   { \osx }, {
 	~report = {
 	  | x |
+	  var strips_raw;
+	  var color;
+	  strips_raw = 0!8;
 	  x.do{ | y, i |
 		y.do{ | z, j |
 		  if( z > ~sens, {
 			strips_raw[ j ] = strips_raw[ j ] + 1;
 			z
 		  }, {
-			0 } ) } } };
-	strips_raw.do{ | v, i |
-	  if( v > 4,
-		{
-		  ~strips[ i ].add( i )
-		},
-		{
-		  ~strips[ i ].remove( i ) } ) } },
+			0 } ) } };
+	  strips_raw.do{ | v, i |
+		if( v > 4,
+		  {
+			~strips[ i ].add( i )
+		  },
+		  {
+			~strips[ i ].remove( i ) } ) } } },
   { \linux }, {
 	~report = {
 	  | x |
@@ -145,7 +145,6 @@ Platform.case (
 	MIDIClient.init( 1, 1 );
 	~uid = 1048576;
 	~midiChan = MIDIOut( 0, ~uid );
-	// the next two lines are Linux specific, I think
 	~midiChan.latency_( 0 );
 	~midiChan.connect( ~uid );
   }

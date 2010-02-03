@@ -1,3 +1,5 @@
+// Thread Arrow Patch ESTRY
+
 Platform.case (
   { \osx }, {
   },
@@ -37,10 +39,14 @@ SynthDef( \io, {
 	| y |
 	JSCStaticText( ~debugWin, Rect( x*64, y*64, 64, 64 )).string_( 0 ) } };
 
-~sens = 0.001;
+~sens = 0.008;
+~strips = Set[ ]!8;
+
 ~report = {
   | x |
+	var strips_raw;
 	var color;
+	strips_raw = 0!8;
 	x.do{ | y, i |
 		y.do{ | z, j |
 			color = min( z/100, 1 );
@@ -48,7 +54,20 @@ SynthDef( \io, {
 			~displays[ i ][ j ].stringColor =
 			if(color > 0.5, Color.black, Color.white );
 			~displays[ i ][ j ].string =
-			if( z > ~sens, z, 0 ) } } };
+			if( z > ~sens, {
+				strips_raw[ j ] = strips_raw[ j ] + 1;
+				z
+			}, {
+				0 } ) } };
+	strips_raw.do{ | v, i |
+		if( v > 4,
+			{
+				~strips[ i ].add( i )
+			},
+			{
+				~strips[ i ].remove( i ) } );
+		~strips[ i ].add( v+10 ) } };
+~report = {| x | x }
 
 ~monitor = Routine{
 	var result;
@@ -69,8 +88,6 @@ SynthDef( \io, {
 				~report.( result ) } ) };
 	loop { getbuffs.( 0, [] ); 0.1.wait } }.play;
 
-// Thread Arrow Patch ESTRY
-~strips = 8.collect( Set[ ] );
 
 // test case
 // ~normalizeStrips.( [ Set[ 0, 1, 2 ], Set[ 3 ], Set[ 0, 4 ], Set[ 3, 5 ], Set[ 5, 7 ]/*, [ 1, 5 ] */] )
@@ -242,8 +259,8 @@ if( not( ~testing ), {
 						~ranges[ strip ].do{ | elt |
 							allbuffs[ i ][ elt ] = tn.rand + adjusted.rand};
 						~ranges[ i ].do{ | elt |
-							allbuffs[ strip ][ elt ] = tn.rand +
-							adjusted.rand } };
+							allbuffs[ strip ][ elt ] = tn +
+							( ( adjusted.rand + adjusted.rand ) / 2 ) } };
 					allbuffs.do{ | buff, i |
 						~buffs[ i ].setn( 0, buff ) } } ) };
 		~touched[ strip ] = adjusted;

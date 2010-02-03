@@ -42,32 +42,51 @@ SynthDef( \io, {
 ~sens = 0.008;
 ~strips = Set[ ]!8;
 
-~report = {
-  | x |
-	var strips_raw;
-	var color;
-	strips_raw = 0!8;
-	x.do{ | y, i |
+Platform.case (
+  { \osx }, {
+	~report = {
+	  | x |
+	  x.do{ | y, i |
 		y.do{ | z, j |
-			color = min( z/100, 1 );
-			~displays[ i ][ j ].background = Color( color, color, color);
-			~displays[ i ][ j ].stringColor =
-			if(color > 0.5, Color.black, Color.white );
-			~displays[ i ][ j ].string =
-			if( z > ~sens, {
-				strips_raw[ j ] = strips_raw[ j ] + 1;
-				z
-			}, {
-				0 } ) } };
+		  if( z > ~sens, {
+			strips_raw[ j ] = strips_raw[ j ] + 1;
+			z
+		  }, {
+			0 } ) } } };
 	strips_raw.do{ | v, i |
+	  if( v > 4,
+		{
+		  ~strips[ i ].add( i )
+		},
+		{
+		  ~strips[ i ].remove( i ) } ) } },
+  { \linux }, {
+	~report = {
+	  | x |
+	  var strips_raw;
+	  var color;
+	  strips_raw = 0!8;
+	  x.do{ | y, i |
+		y.do{ | z, j |
+		  color = min( z/100, 1 );
+		  ~displays[ i ][ j ].background = Color( color, color, color);
+		  ~displays[ i ][ j ].stringColor =
+		  if(color > 0.5, Color.black, Color.white );
+		  ~displays[ i ][ j ].string =
+		  if( z > ~sens, {
+			strips_raw[ j ] = strips_raw[ j ] + 1;
+			z
+		  }, {
+			0 } ) } };
+	  strips_raw.do{ | v, i |
 		if( v > 4,
-			{
-				~strips[ i ].add( i )
-			},
-			{
-				~strips[ i ].remove( i ) } );
-		~strips[ i ].add( v+10 ) } };
-~report = {| x | x }
+		  {
+			~strips[ i ].add( i )
+		  },
+		  {
+			~strips[ i ].remove( i ) } );
+		~strips[ i ].add( v+10 ) } } } );
+// ~report = {| x | x }
 
 ~monitor = Routine{
 	var result;

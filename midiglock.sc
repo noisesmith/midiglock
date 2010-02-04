@@ -34,12 +34,16 @@ SynthDef( \io, {
 ~strips = Set[ ]!8;
 
 // tare for ~sens value
-~tareBuffs = { | conn |
-	conn.do{ | row, i |
-		row.do{ | col, j |
-			~sens[ i ][ j ] = max( ~sens[ i ][ j ], col.abs ) } } };
+~tareBuffs = false;
+// ~tareBuffs = true;
+
 
 ~reportHooks = [];
+
+~reportHooks = ~reportHooks ++ {
+  | action, x, i, j |
+  if( and( action == \elt, ~tareBuffs ), {	
+	~sens[ i ][ j ] = max( ~sens[ i ][ j ], x.abs ) } ) };
 
 ~reportHooks = ~reportHooks ++ {
 	var strips_raw = 0!8;
@@ -47,47 +51,49 @@ SynthDef( \io, {
 		if( action == \elt, {
 			if( x > ~sens[ i ][ j ], {
 				strips_raw[ j ] = strips_raw[ j ] + 1 } ) } );
-		if( x == \done, {
+		if( action == \raw, {
 			strips_raw.do{ | v, i |
 				if( v > 4, {
-					~strips[ i ].add( i )
+				  ~strips[ i ].add( i )
 				}, {
 					~strips[ i ].remove( i ) } ) };
 			strips_raw = 0!8 } ) } }.();
+
+~printTrace = true;
+~printTrace = not( ~printTrace );
 
 ~reportHooks = ~reportHooks ++ {
 	var max = [0, -1];
 	var count = 0;
 	{ | action, x, i, j |
+	  if( ~printTrace, {
 		if( action == \raw, {
-			if( count == 0, { [ \maximum, max].postln } );
-			count = ( count + 1 ) % 60 } );
+		  if( count == 0, { [ \maximum, max].postln } );
+		  count = ( count + 1 ) % 60 } );
 		if( and(action == \column, count == 0), { x.postln } );
 		if( action == \elt, {
-			if( and(i != j, x.abs > max[ 0 ]),
-				{ max = [ x.abs, i, j ] } ) } ) } }.();
+		  if( and( i != j, x.abs > max[ 0 ] ),
+			{ max = [ x.abs, i, j ] } ) } ) } ) } }.();
 
-Platform.case (
-	{ \osx }, { },
-	{ \linux }, {
-		~reportHooks = ~reportHooks ++ = {
-			| action, x, i, j |
-			var color;
-			if( action == \elt, {
-				color = min( x/100, 1 );
-				~displays[ i ][ j ].background = Color( color, color, color);
-				~displays[ i ][ j ].stringColor =
-				if(color > 0.5, Color.black, Color.white );
-				~displays[ i ][ j ].string =
-				if( x > ~sens[ i ][ j ], {
-					z
-				}, {
-					0 } ) } ) } } );
+if( ~testing, {
+  ~reportHooks = ~reportHooks ++ {
+	| action, x, i, j |
+	var color;
+	if( action == \elt, {
+	  color = min( x/100, 1 );
+	  ~displays[ i ][ j ].background = Color( color, color, color);
+	  ~displays[ i ][ j ].stringColor =
+	  if(color > 0.5, Color.black, Color.white );
+	  ~displays[ i ][ j ].string =
+	  if( x > ~sens[ i ][ j ], {
+		x
+	  }, {
+		0 } ) } ) } } );
 
 ~reportHooks[ 0 ].( 5, 0, 1 );
-~reportHooks[ 0 ].( \done, nil, nil );
+~reportHooks[ 0 ].( \raw, nil, nil );
 
-~monitor.isPlaying = Routine{
+~monitor = Routine{
 	var result;
 	var getbuffs = { | count, allbuffs |
 		if( count < 8,

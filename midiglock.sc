@@ -30,59 +30,64 @@ SynthDef( \io, {
   ( 128 .. 133 ), ( 172 .. 175 ), ( 216 .. 221 ), ( 290 .. 293 )
 ];
 
-~sens = 0.008;
+~sens = 0.001!8!8;
 ~strips = Set[ ]!8;
 
-Platform.case (
-  { \osx }, {
-	~report = {
-	  | x |
-	  var strips_raw;
-	  var color;
-	  strips_raw = 0!8;
-	  x.do{ | y, i |
-		y.do{ | z, j |
-		  if( z > ~sens, {
-			strips_raw[ j ] = strips_raw[ j ] + 1;
-			z
-		  }, {
-			0 } ) } };
-	  strips_raw.do{ | v, i |
-		if( v > 4,
-		  {
-			~strips[ i ].add( i )
-		  },
-		  {
-			~strips[ i ].remove( i ) } ) } } },
-  { \linux }, {
-	~report = {
-	  | x |
-	  var strips_raw;
-	  var color;
-	  strips_raw = 0!8;
-	  x.do{ | y, i |
-		y.do{ | z, j |
-		  color = min( z/100, 1 );
-		  ~displays[ i ][ j ].background = Color( color, color, color);
-		  ~displays[ i ][ j ].stringColor =
-		  if(color > 0.5, Color.black, Color.white );
-		  ~displays[ i ][ j ].string =
-		  if( z > ~sens, {
-			strips_raw[ j ] = strips_raw[ j ] + 1;
-			z
-		  }, {
-			0 } ) } };
-	  strips_raw.do{ | v, i |
-		if( v > 4,
-		  {
-			~strips[ i ].add( i )
-		  },
-		  {
-			~strips[ i ].remove( i ) } );
-		~strips[ i ].add( v+10 ) } } } );
-// ~report = {| x | x }
+// tare for ~sens value
+~tareBuffs = { | conn |
+	conn.do{ | row, i |
+		row.do{ | col, j |
+			~sens[ i ][ j ] = max( ~sens[ i ][ j ], col.abs ) } } };
 
-~monitor = Routine{
+~reportHooks = [];
+
+~reportHooks = ~reportHooks ++ {
+	var strips_raw = 0!8;
+	{ | action, x, i, j |
+		if( action == \elt, {
+			if( x > ~sens[ i ][ j ], {
+				strips_raw[ j ] = strips_raw[ j ] + 1 } ) } );
+		if( x == \done, {
+			strips_raw.do{ | v, i |
+				if( v > 4, {
+					~strips[ i ].add( i )
+				}, {
+					~strips[ i ].remove( i ) } ) };
+			strips_raw = 0!8 } ) } }.();
+
+~reportHooks = ~reportHooks ++ {
+	var max = [0, -1];
+	var count = 0;
+	{ | action, x, i, j |
+		if( action == \raw, {
+			if( count == 0, { [ \maximum, max].postln } );
+			count = ( count + 1 ) % 60 } );
+		if( and(action == \column, count == 0), { x.postln } );
+		if( action == \elt, {
+			if( and(i != j, x.abs > max[ 0 ]),
+				{ max = [ x.abs, i, j ] } ) } ) } }.();
+
+Platform.case (
+	{ \osx }, { },
+	{ \linux }, {
+		~reportHooks = ~reportHooks ++ = {
+			| action, x, i, j |
+			var color;
+			if( action == \elt, {
+				color = min( x/100, 1 );
+				~displays[ i ][ j ].background = Color( color, color, color);
+				~displays[ i ][ j ].stringColor =
+				if(color > 0.5, Color.black, Color.white );
+				~displays[ i ][ j ].string =
+				if( x > ~sens[ i ][ j ], {
+					z
+				}, {
+					0 } ) } ) } } );
+
+~reportHooks[ 0 ].( 5, 0, 1 );
+~reportHooks[ 0 ].( \done, nil, nil );
+
+~monitor.isPlaying = Routine{
 	var result;
 	var getbuffs = { | count, allbuffs |
 		if( count < 8,
@@ -98,9 +103,12 @@ Platform.case (
 						| range, j |
 						range.do{ | k |
 							result[ i ][ j ] = buff[ k ]+result[ i ][ j ] } } };
-				~report.( result ) } ) };
-	loop { getbuffs.( 0, [] ); 0.1.wait } }.play;
-
+				result.do{ | y, i |
+					~reportHooks.do{ | f | f.( \column, y ) };
+					y.do{ | z, j |
+						~reportHooks.do{ | f | f.( \elt, z, i, j ) } } };
+				~reportHooks.do{ | f | f.( \raw, result ) } } ) };
+	loop { getbuffs.( 0, [] ); 0.1.wait } }.play( AppClock );
 
 // test case
 // ~normalizeStrips.( [ Set[ 0, 1, 2 ], Set[ 3 ], Set[ 0, 4 ], Set[ 3, 5 ], Set[ 5, 7 ]/*, [ 1, 5 ] */] )
@@ -208,9 +216,7 @@ Platform.case (
 				~white2used.add( newnote );
 			}, {
 				newnote = ~noteVals.choose;
-				~white2used = Set[ newnote ];
-			}
-			);
+				~white2used = Set[ newnote ] } );
 			newnote;
 		},
 		\melody, {
@@ -218,10 +224,7 @@ Platform.case (
 				~melodIdx = ~melodIdx + 1 % ~melodArray.size;
 				~melodArray[ ~melodIdx ];
 			}, {
-				~noteVals.asArray[ 0 ];
-			} ) }
-	)
-};
+				~noteVals.asArray[ 0 ] } ) } ) };
 
 ~getVelocity = { | name |
 	27.rand + 100
@@ -241,8 +244,7 @@ Platform.case (
 			~midiChan.noteOn( 0,
 				~getNote.( name ),
 				~getVelocity.( name ) );
-			~getDur.( name ).wait;
-		} } };
+			~getDur.( name ).wait } } };
 
 ~white = ~makeMelody.( \white );
 ~white2 = ~makeMelody.( \white2 );
@@ -252,9 +254,9 @@ if( not( ~testing ), {
 	~io = Synth( \io );
 	// ~io.free;
 }, { // use with preset 3 on bcf2000
-
+	
 	~touched = 0!8;
-
+	
 	CCResponder( {
 		| src, ch, num, val |
 		//var strip = ch; // for bcf2000 preset 3
